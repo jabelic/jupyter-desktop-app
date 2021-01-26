@@ -21,7 +21,7 @@ const findRootLocation = (filePath) => {
     const dir = path.dirname(filePath)
     const files = fs.readdirSync(dir) // ファイル一覧が取れる
     const matches = files.filter((f) => {
-        return [".git", "requirements.txt", ".ipynb_checkpoint"].includes(f)
+        return [".git", "requirements.txt", ".ipynb_checkpoints"].includes(f)
     })
     if (matches.length){
         return dir
