@@ -20,11 +20,15 @@
     "appId": "your.id",
     "mac": {
       "category": "your.app.category.type",
-      "fileAssociations": {
+      "fileAssociations": [{
         "ext": "md",
         "name": "MarkDown",
         "role": "Viewer"
-      }
+      },{
+        "ext": "ipynb",
+        "name": "jupyter lab",
+        "role": "Editor"
+      }]
     }
   }
 }
