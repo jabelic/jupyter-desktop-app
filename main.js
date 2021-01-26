@@ -11,8 +11,8 @@ let openUrlFilePath= ""
 let windows = {}
 
 const findWindow = (filePath) => {
-    const rootLacation = findRootLocation(filePath)
-    return windows[rootLacation]
+    const rootLocation = findRootLocation(filePath)
+    return windows[rootLocation]
 }
 const findRootLocation = (filePath) => {
     if (filePath == '/'){
@@ -21,7 +21,7 @@ const findRootLocation = (filePath) => {
     const dir = path.dirname(filePath)
     const files = fs.readdirSync(dir) // ファイル一覧が取れる
     const matches = files.filter((f) => {
-        return [".git", "requirements.txt", ".ipynb_checkpoints"].includes(f)
+        return ["Pipfile",".git", "requirements.txt", ".ipynb_checkpoints"].includes(f)
     })
     if (matches.length){
         return dir
@@ -35,7 +35,7 @@ const startLab = (appPath) => {
         openFile(w, appPath)
         return
     }
-    const rootLacation = findRootLocation(appPath) ||  path.dirname(appPath) // jupyterのところまで取れる
+    const rootLocation = findRootLocation(appPath) ||  path.dirname(appPath) // jupyterのところまで取れる
     
     const window = new BrowserWindow({
         width: 800,
@@ -52,15 +52,15 @@ const startLab = (appPath) => {
     // const command = path.join("/usr/local/Cellar/pipenv/2020.11.15/libexec/bin/", "pipenv")
     const pipfile = spawn(command, ["pipenv", "install", "JupyterLab"])
     const cp = spawn(command, ["run", "jupyter", "lab", "--no-browser"], {
-        cwd: rootLacation,
+        cwd: rootLocation,
     })
 
     const newWindow = {
-        root: rootLacation,
+        root: rootLocation,
         window,
         process: cp,
     }
-    windows[rootLacation] = newWindow
+    windows[rootLocation] = newWindow
     window.on('closed', () => {
         cp.kill()
         windows[rootLocation] = null
@@ -77,7 +77,7 @@ const startLab = (appPath) => {
             console.log(match[0])
             window.loadURL(match[0])
             cp.stderr.off("data", dataListerner)
-            const fp = appPath.substring(rootLacation.length) // 
+            const fp = appPath.substring(rootLocation.length) // 
             let url = `${match[0].split("?")[0]}/tree${fp}` // for jupyter lab.
             console.debug(url)
             setTimeout(()=>{
