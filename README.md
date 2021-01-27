@@ -1,3 +1,6 @@
-# Electron application
+# Jupyter Lab application
 
-tutorial
+pipenv環境下でのJupyter Labのデスクトップアプリケーション. 
+
+[pluswing Europa - github](https://github.com/pluswing/Europa)を元に作成.
+

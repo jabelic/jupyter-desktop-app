@@ -1,10 +1,10 @@
+/* Copyright 2019 pluswing Inc. */
+
 const { app, BrowserWindow } = require('electron')
 const fs = require('fs')
 const { spawn } = require('child_process');
-const ls = spawn('ls', ['-lh', '/usr']);
 const path = require('path')
-let win = null
-// let processes = []
+let win = null // main window
 let ready = false
 let openUrlFilePath= ""
 
@@ -15,42 +15,43 @@ const findWindow = (filePath) => {
     return windows[rootLocation]
 }
 const findRootLocation = (filePath) => {
+    return _findRootLocation(filePath) || path.dirname(filePath)
+}
+const _findRootLocation = (filePath) => {
     if (filePath == '/'){
         return null
     }
     const dir = path.dirname(filePath)
     const files = fs.readdirSync(dir) // ファイル一覧が取れる
     const matches = files.filter((f) => {
-        return ["Pipfile",".git", "requirements.txt", ".ipynb_checkpoints"].includes(f)
+        return ["Pipfile", "requirements.txt"].includes(f)
     })
     if (matches.length){
         return dir
     }
-    return findRootLocation(dir) //上のディレクトリを調べる. 再帰.
+    return _findRootLocation(dir) // 上のディレクトリを調べる.
 }
 
 const startLab = (appPath) => {
     const w = findWindow(appPath)
+    let loaded = false
     if(w){
         openFile(w, appPath)
-        return
     }
-    const rootLocation = findRootLocation(appPath) ||  path.dirname(appPath) // jupyterのところまで取れる
+    const rootLocation = findRootLocation(appPath)// jupyterのところまで取れる
     
     const window = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1200,
+        height: 800,
         webPreferences: {
-        // nodeIntegration: true
         }
     })
 
-    // const pyenv = fs.existsSync(path.join(process.env.HOME, ".pyenv"))
-    // console.log(":::",process.env.HOME)
     // const command = pyenv ? path.join(process.env.HOME, ".pyenv", ".shims", "pipenv") : "pipenv"
     const command = path.join("/usr/local/bin/", "pipenv")
-    // const command = path.join("/usr/local/Cellar/pipenv/2020.11.15/libexec/bin/", "pipenv")
-    const pipfile = spawn(command, ["pipenv", "install", "JupyterLab"])
+    const pipfile = spawn(command, ["install", "JupyterLab"], {
+        cwd: rootLocation,
+    })
     const cp = spawn(command, ["run", "jupyter", "lab", "--no-browser"], {
         cwd: rootLocation,
     })
@@ -67,12 +68,10 @@ const startLab = (appPath) => {
     })
 
     let outData = ""
-    let loaded = false
     const dataListerner = (data)=>{
-        if (loaded) return 
         outData += data.toString()
         const match = outData.match(/http:\/\/.*/)
-        if(match){
+        if(match && loaded == false){
             loaded = true
             console.log(match[0])
             window.loadURL(match[0])
@@ -80,34 +79,34 @@ const startLab = (appPath) => {
             const fp = appPath.substring(rootLocation.length) // 
             let url = `${match[0].split("?")[0]}/tree${fp}` // for jupyter lab.
             console.debug(url)
-            setTimeout(()=>{
-                window.loadURL(url)
-            }, 1000) // Token認証を待つ
+            // setTimeout(()=>{
+            //     window.loadURL(url)
+            // }, 3000) // Token認証を待つ
         }
-        console.log("*****************************")
-        // console.log(data.toString())
     } 
     cp.stderr.on('data', dataListerner)
 }
+
 const openFile = (window, filePath) => {
     const url = createUrl(window.url, window.root, filePath)
     window.window.loadURL(url)
     window.window.focus()
 }
+const createUrl = (url, root, filePath) => {
+    return `${url}/tree${filePath.substring(root.length)}`
+}
 
 function createWindow () {
     win = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1200,
+        height: 800,
         webPreferences: {
-        // nodeIntegration: true
         }
     })
 
     win.loadFile('index.html')
     
-    // const appPath = '/Users/jabelic/dev/elec/jupyter/Untitled.ipynb'
-    // startLab(appPath)
+    startLab(appPath)
     
     // win.loadURL('http://localhost:8888/?token=72bdeac4a38f9ca2508d495363a8b84bf9840cae3d31ef92')
     // const root = fs.readdir Sync('.')
@@ -118,16 +117,7 @@ function createWindow () {
     })
 }
 
-// app.whenReady().then(()=>{
-//     ready = true
-//     if (openUrlFilePath){
-//         startLab(openUrlFilePath)
-//         openUrlFilePath = ""
-//     }else{
-//         createWindow()
-//     }
-// })
-app.on('ready', ()=>{
+app.whenReady().then(()=>{
     ready = true
     if (openUrlFilePath){
         startLab(openUrlFilePath)
@@ -136,7 +126,6 @@ app.on('ready', ()=>{
         createWindow()
     }
 })
-
 
 app.on('open-file', (_, filePath) => {
     if (!ready) {
